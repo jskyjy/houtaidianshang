@@ -6,6 +6,13 @@ import router from './router'
 //引入elementui插件
 import ElementUI from 'element-ui'
 import 'element-ui/lib/theme-chalk/index.css'
+
+//引入css文件
+import '@/assets/css/reset.css'
+
+import MyHttpServer from '@/plugins/http.js'
+Vue.use(MyHttpServer)
+
 //注册elementui插件
 Vue.use(ElementUI)
 
