@@ -26,7 +26,7 @@ export default {
   methods: {
     //登录请求
     handleLogin() {
-      this.$http.post("login", this.formdata).then(res => {
+      this.$http.post("login", this.formdata).then(res => { //异步操作代码
         const {
           data,
           meta: { msg, status }
