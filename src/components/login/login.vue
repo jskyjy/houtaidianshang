@@ -34,6 +34,8 @@ export default {
 
         if (status === 200) {
           //登录成功
+          // 将token值存储到localstorage中
+          localStorage.setItem('token',data.token)
           //跳转home，消息提示
           this.$router.push({ name: "home" });  //跳转到home组件
           this.msg = msg
