@@ -1,6 +1,7 @@
 <template>
   <div class="home">
     <el-container class="container">
+      <!-- header -->
       <el-header class="header">
         <el-row>
           <el-col :span="4">
@@ -15,12 +16,13 @@
           </el-col>
           <el-col :span="2">
             <div class="grid-content bg-purple">
-              <a href="#">退出</a>
+              <a href="#" @click.prevent = "handleSignout()">退出</a>
             </div>
           </el-col>
         </el-row>
       </el-header>
       <el-container>
+        <!-- aside -->
         <el-aside width="200px" class="aside">
           <el-menu :unique-opened="true">
             <!-- 1 -->
@@ -92,6 +94,7 @@
             </el-submenu>
           </el-menu>
         </el-aside>
+        <!-- main -->
         <el-main class="main">Main</el-main>
       </el-container>
     </el-container>
@@ -99,7 +102,28 @@
 </template>
 
 <script>
-export default {};
+export default {
+  //进去home页面渲染之前应该查看是都存在token值，若存在继续渲染，不存在跳转回登录页面。我们选择在beforecreate里面
+  beforeCreate() {
+    const token = localStorage.getItem('token')
+    if(!token){
+      this.$router.push({name:'login'})
+    }
+  },
+  data(){
+    return {
+
+    }
+  },
+  methods:{
+    handleSignout(){
+      localStorage.removeItem('token')
+      this.$message.success('退出成功')
+      this.$router.push({name:'login'})
+
+    }
+  }
+};
 </script>
 
 <style>
