@@ -40,10 +40,10 @@
                 </template>
             </el-table-column>
             <el-table-column prop label="操作">
-                <template slot-scope>
+                <template slot-scope="scope">
                     <el-button type="primary" icon="el-icon-edit" circle plain></el-button>
                     <el-button type="success" icon="el-icon-check" circle plain></el-button>
-                    <el-button type="danger" icon="el-icon-delete" circle plain></el-button>
+                    <el-button type="danger" icon="el-icon-delete" circle plain @click="deleteUser(scope.row.id)"></el-button>
                 </template>
             </el-table-column>
         </el-table>
@@ -52,24 +52,24 @@
              page-sizes每页显示多少条数据的数组
              page-size="100" 设置初始时显示多少条数据
       -->
-        <el-pagination @size-change="handleSizeChange" @current-change="handleCurrentChange" :current-page="pagenum" :page-sizes="[2, 4, 6]" :page-size="2" layout="total, sizes, prev, pager, next, jumper" :total="total"></el-pagination>
+        <el-pagination @size-change="handleSizeChange" @current-change="handleCurrentChange" :current-page="pagenum" :page-sizes="[10, 20, 30]" :page-size="2" layout="total, sizes, prev, pager, next, jumper" :total="total"></el-pagination>
 
         <!-- 添加用户弹框 -->
         <el-dialog title="添加用户" :visible.sync="dialogFormVisibleAdd">
             <el-form :model="form">
-                <el-form-item label="用户名" :label-width="formLabelWidth">
+                <el-form-item label="用户名" label-width="100px">
                     <el-input v-model="form.username" autocomplete="off"></el-input>
                 </el-form-item>
 
-                <el-form-item label="密 码" :label-width="formLabelWidth">
+                <el-form-item label="密 码" label-width="100px">
                     <el-input v-model="form.password" autocomplete="off"></el-input>
                 </el-form-item>
 
-                <el-form-item label="邮 箱" :label-width="formLabelWidth">
+                <el-form-item label="邮 箱" label-width="100px">
                     <el-input v-model="form.email" autocomplete="off"></el-input>
                 </el-form-item>
 
-                <el-form-item label="电 话" :label-width="formLabelWidth">
+                <el-form-item label="电 话" label-width="100px">
                     <el-input v-model="form.mobile" autocomplete="off"></el-input>
                 </el-form-item>
             </el-form>
@@ -78,6 +78,9 @@
                 <el-button type="primary" @click="adduser()">确 定</el-button>
             </div>
         </el-dialog>
+
+        <!-- 删除用户确认弹框 -->
+
     </el-card>
 </div>
 </template>
@@ -89,16 +92,17 @@ export default {
             query: "",
             userList: [],
             //分页相关数据
-            total: 0,
+            total: -1,
             pagenum: 1, //当前页码
-            pagesize: 2, //每页显示条数
-            dialogFormVisibleAdd: false, // 控制弹框可见
+            pagesize: 10, //每页显示条数
+            dialogFormVisibleAdd: false, // 控制添加用户弹框可见
             form: { //添加用户的表单数据
                 username: '',
                 password: '',
                 email: '',
                 mobile: ''
-            }
+            },
+            dialogVisibleDel: false //控制删除用户弹窗可见
         };
     },
     created() {
@@ -163,24 +167,55 @@ export default {
 
         // 添加用户，发送请求
         adduser() {
-          this.$http.post('users',this.form).then(res => {
-            // console.log(res)
-            const {meta:{status,msg},data} = res.data
+            this.$http.post('users', this.form).then(res => {
+                // console.log(res)
+                const {
+                    meta: {
+                        status,
+                        msg
+                    },
+                    data
+                } = res.data
 
-            if(status === 201){
-              //提示成功，关闭对话框，清空对话框数据  刷新数据
-              this.$message.success(msg)
-              this.dialogFormVisibleAdd = false
-              this.form.username = ''
-              this.form.password = ''
-              this.form.email = ''
-              this.form.mobile = ''
+                if (status === 201) {
+                    //提示成功，关闭对话框，清空对话框数据  刷新数据
+                    this.$message.success(msg)
+                    this.dialogFormVisibleAdd = false
+                    this.form.username = ''
+                    this.form.password = ''
+                    this.form.email = ''
+                    this.form.mobile = ''
 
-              this.getUserList()
-            }else{
-              this.$message.error(msg)
-            }
-          })
+                    this.getUserList()
+                } else {
+                    this.$message.error(msg)
+                }
+            })
+        },
+
+        // 删除用户操作
+        deleteUser(id) {
+            this.$confirm('此操作将删除该用户的所有信息, 是否继续?', '提示', {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning'
+            }).then(() => {
+                this.$http.delete(`users/${id}`).then(res => {
+                    // console.log(res)
+                    if (res.data.meta.status === 200) {
+                    this.$message({
+                        type: 'success',
+                        message: res.data.meta.msg
+                    });
+                    this.getUserList()
+                }
+                })  
+            }).catch(() => {
+                this.$message({
+                    type: 'info',
+                    message: '已取消删除'
+                });
+            });
         }
     }
 };
