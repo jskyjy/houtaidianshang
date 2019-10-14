@@ -19,7 +19,7 @@
             </el-col>
         </el-row>
         <!-- 表格 -->
-        <el-table :data="userList" style="width: 100%" class="table">
+        <el-table max-height="1000px" :data="userList" style="width: 100%" class="table">
             <el-table-column prop label="序号" type="index"></el-table-column>
             <el-table-column prop="username" label="姓名" width="180"></el-table-column>
             <el-table-column prop="email" label="邮箱"></el-table-column>
@@ -36,13 +36,13 @@
             </el-table-column>
             <el-table-column prop label="用户状态">
                 <template slot-scope="scope">
-                    <el-switch v-model="scope.row.mg_status" active-color="#13ce66" inactive-color="#ff4949"></el-switch>
+                    <el-switch v-model="scope.row.mg_state" @change="changeUserStatus(scope.row)" active-color="#13ce66" inactive-color="#ff4949"></el-switch>
                 </template>
             </el-table-column>
             <el-table-column prop label="操作">
                 <template slot-scope="scope">
-                    <el-button type="primary" icon="el-icon-edit" circle plain></el-button>
-                    <el-button type="success" icon="el-icon-check" circle plain></el-button>
+                    <el-button type="primary" icon="el-icon-edit" @click="showeditUser(scope.row)" circle plain></el-button>
+                    <el-button type="success" icon="el-icon-check" @click="showUserRole(scope.row)" circle plain></el-button>
                     <el-button type="danger" icon="el-icon-delete" circle plain @click="deleteUser(scope.row.id)"></el-button>
                 </template>
             </el-table-column>
@@ -52,7 +52,7 @@
              page-sizes每页显示多少条数据的数组
              page-size="100" 设置初始时显示多少条数据
       -->
-        <el-pagination @size-change="handleSizeChange" @current-change="handleCurrentChange" :current-page="pagenum" :page-sizes="[10, 20, 30]" :page-size="2" layout="total, sizes, prev, pager, next, jumper" :total="total"></el-pagination>
+        <el-pagination @size-change="handleSizeChange" @current-change="handleCurrentChange" :current-page="pagenum" :page-sizes="[7, 14, 21]" :page-size="2" layout="total, sizes, prev, pager, next, jumper" :total="total"></el-pagination>
 
         <!-- 添加用户弹框 -->
         <el-dialog title="添加用户" :visible.sync="dialogFormVisibleAdd">
@@ -79,7 +79,47 @@
             </div>
         </el-dialog>
 
-        <!-- 删除用户确认弹框 -->
+        <!-- 编辑用户弹窗 -->
+        <el-dialog title="编辑用户" :visible.sync="dialogFormVisibleEdit">
+            <el-form :model="form">
+                <el-form-item label="用户名" label-width="100px">
+                    <el-input v-model="form.username" autocomplete="off" :disabled="true"></el-input>
+                </el-form-item>
+
+                <el-form-item label="邮 箱" label-width="100px">
+                    <el-input v-model="form.email" autocomplete="off"></el-input>
+                </el-form-item>
+
+                <el-form-item label="电 话" label-width="100px">
+                    <el-input v-model="form.mobile" autocomplete="off"></el-input>
+                </el-form-item>
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="dialogFormVisibleEdit = false">取 消</el-button>
+                <el-button type="primary" @click="editUser()">确 定</el-button>
+            </div>
+        </el-dialog>
+
+        <!-- 分配角色弹窗 -->
+        <el-dialog title="角色分配" :visible.sync="showUsercard">
+            <el-form :model="form">
+                <el-form-item label="用户名" label-width="100px">
+                    {{currentUsername}}
+                </el-form-item>
+                <el-form-item label="角色" label-width="100px">
+                    <!-- 如果select绑定的数据和值和option的value一样，就会显示该option的label值 -->
+                    <el-select v-model="currentRoleId">
+                        <el-option label="请选择" :value="-1"></el-option>
+                        <!-- label是显示的文字   value是显示文字代表实际的值  -->
+                        <el-option :label="item.roleName" :value="item.id" v-for="(item,i) in roles" :key="i"></el-option>
+                    </el-select>
+                </el-form-item>
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="showUsercard = false">取 消</el-button>
+                <el-button type="primary" @click="setRole()">确 定</el-button>
+            </div>
+        </el-dialog>
 
     </el-card>
 </div>
@@ -94,15 +134,23 @@ export default {
             //分页相关数据
             total: -1,
             pagenum: 1, //当前页码
-            pagesize: 10, //每页显示条数
+            pagesize: 7, //每页显示条数
             dialogFormVisibleAdd: false, // 控制添加用户弹框可见
             form: { //添加用户的表单数据
-                username: '',
-                password: '',
-                email: '',
-                mobile: ''
+                // id: -1,
+                // username: '',
+                // password: '',
+                // email: '',
+                // mobile: ''
             },
-            dialogVisibleDel: false //控制删除用户弹窗可见
+            dialogFormVisibleEdit: false, //控制编辑弹窗可见
+            showUsercard: false,
+            //分配角色
+            currentRoleId: -1,
+            //所有角色的数据
+            roles:[],
+            currentUserId: -1,
+            currentUsername: '' //当前用户名
         };
     },
     created() {
@@ -203,19 +251,70 @@ export default {
                 this.$http.delete(`users/${id}`).then(res => {
                     // console.log(res)
                     if (res.data.meta.status === 200) {
-                    this.$message({
-                        type: 'success',
-                        message: res.data.meta.msg
-                    });
-                    this.getUserList()
-                }
-                })  
+                        this.$message({
+                            type: 'success',
+                            message: res.data.meta.msg
+                        });
+                        this.getUserList()
+                    }
+                })
             }).catch(() => {
                 this.$message({
                     type: 'info',
                     message: '已取消删除'
                 });
             });
+        },
+
+        // 显示编辑用户
+        showeditUser(user) {
+            this.dialogFormVisibleEdit = true
+            this.form = user
+        },
+        // 编辑用户确认操作
+        editUser() {
+            this.$http.put(`user/${this.form.id}`, this.form).then(res => {
+                // console.log(res)
+                //关闭弹窗    更新视图    清空form
+                this.dialogFormVisibleEdit = false
+                this.getUserList()
+                this.form = {}
+            })
+
+        },
+        // 改变用户状态
+        changeUserStatus(user) {
+            // console.log(user.mg_state)
+            // user.mg_state = !user.mg_state
+            this.$http.put(`users/${user.id}/state/${user.mg_state}`).then(res => {
+                // console.log(res)
+            })
+        },
+        // 显示分配角色弹窗
+        showUserRole(user) {
+            //控制弹窗打开
+            this.showUsercard = true
+            //更新当前用户名
+            this.currentUsername = user.username
+            //获取所有角色
+            this.$http.get(`roles`).then( res => {
+                this.roles = res.data.data
+            })
+            // 获取当前用户的角色id
+            this.$http.get(`users/${user.id}`).then( res => {
+                this.currentRoleId = res.data.data.rid
+
+                this.currentUserId = res.data.data.id
+            })
+        },
+        // 修改用户角色
+        setRole() {
+            this.$http.put(`users/${this.currentUserId}/role`,{rid:this.currentRoleId}).then(res => {
+                // console.log(res)
+                this.$message.success(res.data.meta.msg)
+                //关闭弹窗
+                this.showUsercard = false
+            })
         }
     }
 };
